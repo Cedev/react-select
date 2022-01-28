@@ -87,6 +87,8 @@ export interface Props<
   autoFocus?: boolean;
   /** Remove the currently focused option when the user presses backspace when Select isClearable or isMulti */
   backspaceRemovesValue: boolean;
+  /** Remove focus from the input when the user clears the options (handy for dismissing the keyboard on touch devices) */
+  blurInputOnClear: boolean;
   /** Remove focus from the input when the user selects an option (handy for dismissing the keyboard on touch devices) */
   blurInputOnSelect: boolean;
   /** When the user reaches the top/bottom of the menu, prevent scroll on the scroll-parent  */
@@ -134,6 +136,10 @@ export interface Props<
   filterOption:
     | ((option: FilterOptionOption<Option>, inputValue: string) => boolean)
     | null;
+  /** Allows control of whether the input is focused when the menu is opened.
+   * 
+   * Set to false to avoid opening the keyboard on touch devices. **/
+  focusInputOnMenuOpen: boolean;
   /**
    * Formats group labels in the menu as React components
    *
@@ -267,6 +273,7 @@ export interface Props<
 export const defaultProps = {
   'aria-live': 'polite',
   backspaceRemovesValue: true,
+  blurInputOnClear: false,
   blurInputOnSelect: isTouchCapable(),
   captureMenuScroll: !isTouchCapable(),
   closeMenuOnSelect: true,
@@ -275,6 +282,7 @@ export const defaultProps = {
   controlShouldRenderValue: true,
   escapeClearsValue: false,
   filterOption: createFilter(),
+  focusInputOnMenuOpen: true,
   formatGroupLabel: formatGroupLabelBuiltin,
   getOptionLabel: getOptionLabelBuiltin,
   getOptionValue: getOptionValueBuiltin,
@@ -1194,7 +1202,9 @@ export default class Select<
     }
     if (this.props.isDisabled) return;
     const { isMulti, menuIsOpen } = this.props;
-    this.focusInput();
+    if (this.props.focusInputOnMenuOpen) {
+      this.focusInput();
+    }
     if (menuIsOpen) {
       this.setState({ inputIsHiddenAfterUpdate: !isMulti });
       this.onMenuClose();
@@ -1218,11 +1228,13 @@ export default class Select<
     this.clearValue();
     event.preventDefault();
     event.stopPropagation();
-    this.openAfterFocus = false;
-    if (event.type === 'touchend') {
-      this.focusInput();
-    } else {
-      setTimeout(() => this.focusInput());
+    if (!this.props.blurInputOnClear) {
+      this.openAfterFocus = false;
+      if (event.type === 'touchend') {
+        this.focusInput();
+      } else {
+        setTimeout(() => this.focusInput());
+      }
     }
   };
   onScroll = (event: Event) => {
